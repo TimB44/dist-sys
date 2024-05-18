@@ -27,16 +27,20 @@ func main() {
 
 		_, alreadySeen := seen[message]
 		seen[message] = empty{}
-		seenLock.Unlock()
 
 		if !alreadySeen {
+
 			for _, node := range neighbors {
-				n.Send(node, map[string]any{
-					"type":    "broadcast",
-					"message": message,
-				})
+				for m := range seen {
+					n.Send(node, map[string]any{
+						"type":    "broadcast",
+						"message": m,
+					})
+				}
+
 			}
 		}
+		seenLock.Unlock()
 
 		var resp = make(map[string]any, 1)
 		resp["type"] = "broadcast_ok"
@@ -49,9 +53,10 @@ func main() {
 	})
 
 	n.Handle("read", func(msg maelstrom.Message) error {
-		keys := make([]int, len(seen))
+
 		i := 0
 		seenLock.Lock()
+		keys := make([]int, len(seen))
 		for k := range seen {
 			keys[i] = k
 			i++
